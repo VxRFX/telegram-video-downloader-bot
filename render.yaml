@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: telegram-video-downloader-bot
+    env: python
+    buildCommand: ""
+    startCommand: python main.py
+    envVars: []
