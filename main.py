@@ -1,90 +1,44 @@
-from flask import Flask, request
 import telebot
-from yt_dlp import YoutubeDL
-from youtubesearchpython import VideosSearch
+from flask import Flask, request
+import yt_dlp
 import os
 
-API_TOKEN = '7591756115:AAGPYDRNNqB_UMPE3QquNvpegn0wEIYfvo8'  # ТВОЙ ТОКЕН
-bot = telebot.TeleBot(API_TOKEN)
-
+BOT_TOKEN = "7794349596:AAEVqwZXfRD5QD-ibSuHgU9XeKnd5Dc6HS8"
+bot = telebot.TeleBot(BOT_TOKEN)
 app = Flask(__name__)
 
-@app.route('/')
-def home():
-    return 'Music bot is running 24/7'
-
-@app.route('/' + API_TOKEN, methods=['POST'])
-def getMessage():
-    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-    return "OK", 200
-
+# /start
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "🎵 Привет! Просто отправь мне название песни или ссылку (YouTube, TikTok, Instagram) — я скачаю музыку 🎧")
+def start_handler(message):
+    bot.send_message(message.chat.id, "🎥 Привет! Отправь ссылку на видео с YouTube, TikTok или Instagram.")
 
-@bot.message_handler(func=lambda message: True)
-def download_music(message):
-    query = message.text.strip()
-
-    # Проверка: это ссылка или название?
-    if query.startswith("http"):
-        url = query
-    else:
-        # Поиск на YouTube по названию
-        videosSearch = VideosSearch(query, limit=1)
-        result = videosSearch.result()
-        if not result['result']:
-            bot.reply_to(message, "❌ Ничего не найдено.")
-            return
-        url = result['result'][0]['link']
-
-    msg = bot.reply_to(message, "⏬ Загружаю музыку, подожди немного...")
-
-    # Скачивание с помощью yt-dlp
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': 'downloaded_song.%(ext)s',
-        'noplaylist': True,
-        'quiet': True,
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
-
+# обработка ссылок
+@bot.message_handler(func=lambda m: True)
+def download_video(message):
+    url = message.text.strip()
+    bot.send_message(message.chat.id, "⏬ Скачиваю видео, подожди...")
     try:
-        with YoutubeDL(ydl_opts) as ydl:
+        with yt_dlp.YoutubeDL({'outtmpl': 'video.%(ext)s'}) as ydl:
             info = ydl.extract_info(url, download=True)
-            title = info.get('title', 'Аудио')
-            performer = info.get('uploader', 'Unknown')
-            duration = info.get('duration', 0)
-        
-        audio = open("downloaded_song.mp3", "rb")
-        bot.send_audio(
-            message.chat.id, 
-            audio, 
-            title=title,
-            performer=performer,
-            duration=duration
-        )
-        audio.close()
-        os.remove("downloaded_song.mp3")
+            filename = ydl.prepare_filename(info)
+        with open(filename, 'rb') as video:
+            bot.send_video(message.chat.id, video)
+        os.remove(filename)
     except Exception as e:
-        bot.reply_to(message, f"❌ Ошибка при скачивании:\n{str(e)}")
-        print("Ошибка:", e)
+        bot.send_message(message.chat.id, f"❌ Ошибка: {e}")
 
-# Установка webhook (для Replit или Railway)
-import telebot.util
-import threading
-
-WEBHOOK_URL = f"https://{os.environ.get('REPL_SLUG')}.{os.environ.get('REPL_OWNER')}.repl.co/{API_TOKEN}"
-
+# --- ВАЖНО: маршрут установки webhook ---
+@app.route('/set_webhook', methods=["GET"])
 def set_webhook():
     bot.remove_webhook()
-    bot.set_webhook(url=WEBHOOK_URL)
+    bot.set_webhook(url='https://5af00bb5-9b24-4d2e-95a6-ebed7df1c5ef-00-3c7mkuuweanq4.sisko.replit.dev/' + BOT_TOKEN)
+    return "Webhook установлен"
 
-threading.Thread(target=set_webhook).start()
+# webhook
+@app.route(f'/{BOT_TOKEN}', methods=['POST'])
+def webhook():
+    bot.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return 'ok'
 
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=8080)
