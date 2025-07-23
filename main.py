@@ -1,31 +1,30 @@
 from flask import Flask, request
 import telebot
 
-TOKEN = '7794349596:AAEVqwZXfRD5QD-ibSuHgU9XeKnd5Dc6HS8'
+TOKEN = '7794349596:AAEVqwZXfRD5QD-ibSuHgU9XeKnd5Dc6HS8'  # Замени на нужный токен, если он другой
 bot = telebot.TeleBot(TOKEN)
 app = Flask(__name__)
 
-# Обработка команд
+# Ответ на команду /start
 @bot.message_handler(commands=['start'])
 def start_message(message):
-    bot.send_message(message.chat.id, "Привет! Я бот для скачивания видео.")
+    bot.send_message(message.chat.id, "✅ Бот работает!")
 
-# Вебхук для Telegram
+# Обработка обновлений Telegram
 @app.route(f'/{TOKEN}', methods=['POST'])
-def receive_update():
-    json_str = request.get_data().decode('UTF-8')
-    update = telebot.types.Update.de_json(json_str)
+def telegram_webhook():
+    update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
     bot.process_new_updates([update])
-    return '', 200
+    return "OK", 200
 
-# Установка вебхука
+# Установка webhook
 @app.route('/set_webhook', methods=['GET'])
 def set_webhook():
-    webhook_url = f'https://5af00bb5-9b24-4d2e-95a6-ebed7df1c5ef-00-3c7mkuuweanq4.sisko.replit.dev/{TOKEN}'
+    url = f"https://{request.host}/{TOKEN}"
     bot.remove_webhook()
-    success = bot.set_webhook(url=webhook_url)
-    return 'Установлено' if success else 'Ошибка'
+    result = bot.set_webhook(url=url)
+    return "Webhook установлен ✅" if result else "Ошибка ❌"
 
-# Запуск Flask
+# Запуск Flask-сервера
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=8080)
+    app.run(host="0.0.0.0", port=8080)
