@@ -4,7 +4,7 @@ from yt_dlp import YoutubeDL
 from youtubesearchpython import VideosSearch
 import os
 
-API_TOKEN = '7590984094:AAGuVH13k26Iynyz-BATElSTMiyT3Y7LtB8'  # ТВОЙ ТОКЕН
+API_TOKEN = '7591756115:AAGPYDRNNqB_UMPE3QquNvpegn0wEIYfvo8'  # ТВОЙ ТОКЕН
 bot = telebot.TeleBot(API_TOKEN)
 
 app = Flask(__name__)
