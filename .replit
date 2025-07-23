@@ -1,0 +1,7 @@
+run = "python3 main.py"
+
+[interpreter]
+version = "python3.12"
+
+[deployment]
+run = ["sh", "-c", "python3 main.py"]
